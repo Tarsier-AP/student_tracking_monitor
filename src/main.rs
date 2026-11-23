@@ -1,3 +1,8 @@
+mod models;
+mod logic;
+mod storage;
+mod ui;
+
 fn main() {
-    println!("Hello, world!");
+    println!("Classroom Manager")
 }
