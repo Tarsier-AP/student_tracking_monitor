@@ -90,3 +90,179 @@ impl RoomLayout {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_position(id: u64, x: u64, y: u64) -> ComputerPosition {
+        ComputerPosition::new(ComputerId(id), x, y)
+    }
+
+    #[test]
+    fn computer_position_new_creates_position() {
+        let position = create_position(1, 5, 10);
+
+        assert_eq!(position.computer_id, ComputerId(1));
+        assert_eq!(position.grid_x, 5);
+        assert_eq!(position.grid_y, 10);
+    }
+
+    #[test]
+    fn computer_position_set_position_updates_cordinates() {
+        let mut position = create_position(1, 5, 10);
+
+        position.set_position(15, 20);
+
+        assert_eq!(position.grid_x, 15);
+        assert_eq!(position.grid_x, 20);
+    }
+    #[test]
+    fn room_layout_new_creates_empty_layout() {
+        let layout = RoomLayout::new();
+
+        assert!(layout.positions.is_empty());
+    }
+
+    #[test]
+    fn room_layout_add_pos_adds_position() {
+        let mut layout = RoomLayout::new();
+
+        let result = layout.add_position(create_position(1, 5, 10));
+
+        assert!(result.is_ok());
+        assert_eq!(layout.positions.len(), 1);
+    }
+
+    #[test]
+    fn room_layout_add_position_rejects_duplicate_computer_id() {
+        let mut layout = RoomLayout::new();
+
+        layout.add_position(create_position(1, 5, 10)).unwrap();
+
+        let result = layout.add_position(create_position(1, 15, 20));
+
+        assert!(result.is_err());
+        assert_eq!(layout.positions.len(), 1);
+    }
+
+    #[test]
+    fn room_layout_add_pos_does_not_modify_existing_pos_on_err() {
+        let mut layout = RoomLayout::new();
+
+        layout.add_position(create_position(1, 5, 10)).unwrap(); 
+
+        let _ = layout.add_position(create_position(1, 15, 20));
+
+        let pos = layout.get_position(ComputerId(1)).unwrap();
+
+        assert_eq!(pos.grid_x, 5);
+        assert_eq!(pos.grid_y, 10);
+    }
+
+    #[test]
+    fn room_layout_remove_pos_removes_existing_pos() {
+        let mut layout = RoomLayout::new();
+
+        layout.add_position(create_position(1, 5, 10)).unwrap(); 
+
+        let result = layout.remove_position(ComputerId(99));
+
+        assert!(!result);
+    }
+
+    #[test]
+    fn room_layout_get_pos_returns_existing_pos() {
+        let mut layout = RoomLayout::new();
+
+        layout.add_position(create_position(1, 5, 10)).unwrap();
+
+        let pos = layout.get_position(ComputerId(1));
+
+        assert!(pos.is_some());
+
+        let pos = pos.unwrap();
+        assert_eq!(pos.grid_x, 5);
+        assert_eq!(pos.grid_y, 10);
+    }
+
+    #[test]
+    fn room_layout_get_pos_returns_none_for_missing_id() {
+        let layout = RoomLayout::new();
+
+        let pos = layout.get_position(ComputerId(99));
+
+        assert!(pos.is_none());
+    }
+
+    #[test]
+    fn room_layout_clear_removes_all_pos() {
+        let mut layout = RoomLayout::new();
+
+        layout.add_position(create_position(1, 5, 10)).unwrap();
+        layout.add_position(create_position(2, 15, 20)).unwrap();
+        layout.add_position(create_position(3, 25, 30)).unwrap();
+
+        layout.clear();
+
+        assert!(layout.positions.is_empty());
+    }
+
+    #[test]
+    fn room_layout_move_computer_updates_cordinates() {
+        let mut layout = RoomLayout::new();
+
+        layout.add_position(create_position(1, 5, 10)).unwrap();
+
+        let result = layout.move_computer(ComputerId(1), 15, 20);
+
+        assert!(result.is_ok());
+
+        let pos = layout.get_position(ComputerId(1)).unwrap();
+        
+        assert_eq!(pos.grid_x, 15);
+        assert_eq!(pos.grid_y, 20);
+    }
+
+    #[test]
+    fn room_layout_move_computer_does_not_modify_other_positions() {
+        let mut layout = RoomLayout::new();
+
+        layout.add_position(create_position(1, 5, 10)).unwrap();
+        layout.add_position(create_position(2, 15, 20)).unwrap();
+
+        layout.move_computer(ComputerId(1), 50, 60).unwrap();
+
+        let other = layout.get_position(ComputerId(2)).unwrap();
+
+        assert_eq!(other.grid_x, 15);
+        assert_eq!(other.grid_y, 20);
+    }
+
+    #[test]
+    fn room_layout_mov_computer_can_move_to_same_cords() {
+        let mut layout = RoomLayout::new();
+
+        layout.add_position(create_position(1, 5, 10)).unwrap();
+
+        let result = layout.move_computer(ComputerId(1), 5, 10);
+
+        assert!(result.is_ok());
+
+        let pos = layout.get_position(ComputerId(1)).unwrap();
+
+        assert_eq!(pos.grid_x, 5);
+        assert_eq!(pos.grid_y, 10);
+    }
+
+    #[test]
+    fn room_layout_return_err_for_missing_id() {
+        let mut layout = RoomLayout::new();
+        
+        let result = layout.move_computer(ComputerId(99), 15, 20);
+
+        assert!(result.is_err());
+        assert!(layout.positions.is_empty());
+    } 
+
+}
