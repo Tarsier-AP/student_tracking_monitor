@@ -1,4 +1,3 @@
-
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::fs::{self, OpenOptions};
@@ -10,10 +9,7 @@ static TEMP_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 fn sibling_path(path: &Path, suffix: &str) -> PathBuf {
     let id = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
-    let file_name = path
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy();
+    let file_name = path.file_name().unwrap_or_default().to_string_lossy();
 
     path.with_file_name(format!(
         ".{file_name}.{}.{}.{suffix}",
@@ -22,10 +18,7 @@ fn sibling_path(path: &Path, suffix: &str) -> PathBuf {
     ))
 }
 
-pub fn save_json<T: Serialize>(
-    path: &Path,
-    data: &T,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn save_json<T: Serialize>(path: &Path, data: &T) -> Result<(), Box<dyn std::error::Error>> {
     let json = serde_json::to_vec_pretty(data)?;
     let temp_path = sibling_path(path, "tmp");
 
@@ -67,17 +60,23 @@ fn replace_file(temp: &Path, destination: &Path) -> std::io::Result<()> {
     fs::rename(destination, &backup)?;
 
     if let Err(error) = fs::rename(temp, destination) {
-        let _ = fs::rename(&backup, destination);
-        return Err(error);
+        return match fs::rename(temp, destination) {
+            Ok(()) => Err(error),
+            Err(rollback_error) => Err(std::io::Error::new(
+                error.kind(),
+                format!(
+                    "Не удалось установить новый файл: {error} .\
+                    Не удалось восстановить резервную копию: {rollback_error}"
+                ),
+            )),
+        };
     }
+    let _ = fs::rename(&backup, destination);
 
-    fs::remove_file(backup)?;
     Ok(())
 }
 
-pub fn load_json<T: DeserializeOwned>(
-    path: &Path,
-) -> Result<T, Box<dyn std::error::Error>> {
+pub fn load_json<T: DeserializeOwned>(path: &Path) -> Result<T, Box<dyn std::error::Error>> {
     let json = fs::read(path)?;
     let data = serde_json::from_slice(&json)?;
 
@@ -173,12 +172,10 @@ mod tests {
 
     #[test]
     fn save_json_does_not_create_missing_parent_directory() {
-        let path = temp_path("missing_parent")
-            .join("data.json");
+        let path = temp_path("missing_parent").join("data.json");
 
         let result = save_json(&path, &json!({"value": 1}));
 
         assert!(result.is_err());
     }
 }
-
