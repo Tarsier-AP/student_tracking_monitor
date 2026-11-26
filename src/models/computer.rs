@@ -1,10 +1,7 @@
-use std::collections::VecDeque;
-
-use crate::models::{PresenceStatus, Student, student};
-
 use super::StudentId;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 pub struct ComputerId(pub u64);
 
 impl ComputerId {
@@ -17,14 +14,14 @@ impl ComputerId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 pub enum ComputerAvailability {
     Online,
     Offline,
     Maintenance,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Computer {
     pub id: ComputerId,
     pub name: String,

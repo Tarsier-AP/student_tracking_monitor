@@ -1,21 +1,22 @@
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 use super::UserId;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct MessageId(pub u32);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+pub struct MessageId(pub u64);
 
 impl MessageId {
-    pub fn new(value: u32) -> Self {
+    pub fn new(value: u64) -> Self {
         Self(value)
     }
 
-    pub fn value(&self) -> u32 {
+    pub fn value(&self) -> u64 {
         self.0
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Note {
     pub id: MessageId,
     pub sent_by: UserId,

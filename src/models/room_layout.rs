@@ -1,6 +1,7 @@
 use super::ComputerId;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 pub struct ComputerPosition {
     pub computer_id: ComputerId,
     pub grid_x: u64,
@@ -22,7 +23,7 @@ impl ComputerPosition {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct RoomLayout {
     pub positions: Vec<ComputerPosition>,
 }

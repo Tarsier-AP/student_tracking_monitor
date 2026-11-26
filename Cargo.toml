@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 eframe = "0.37.0"
 egui = "0.37.0"
-url = "2.5.9"
-chrono = "0.4.45"
+url = { version = "2.5.9", features = ["serde"] }
+chrono = { version = "0.4.45", features = ["serde"] }
 serde_json = "1.0.154"
-serde = "1.0.229"
+serde = { version = "1.0.229", features = ["derive"] }
