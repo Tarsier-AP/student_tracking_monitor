@@ -1,8 +1,8 @@
 use serde::de::DeserializeOwned;
-use serde_json::Serializer;
+use serde::Serialize;
 use std::path::Path;
 
-pub fn save_json<T: Seroalize>(path: &Path, data: &T) -> Result<(), Box<dyn std::error::Error>> {
+pub fn save_json<T: Serialize>(path: &Path, data: &T) -> Result<(), Box<dyn std::error::Error>> {
     let json = serde_json::to_vec_pretty(data)?;
     std::fs::write(path, json)?;
 
