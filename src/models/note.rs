@@ -1,4 +1,3 @@
-
 use chrono::{DateTime, Utc};
 
 use super::UserId;
@@ -48,11 +47,7 @@ impl Note {
         })
     }
 
-    pub fn edit(
-        &mut self,
-        message: String,
-        edited_at: DateTime<Utc>,
-    ) -> Result<(), String> {
+    pub fn edit(&mut self, message: String, edited_at: DateTime<Utc>) -> Result<(), String> {
         if message.trim().is_empty() {
             return Err(String::from("Заметка не может быть пустой!"));
         }
@@ -69,13 +64,11 @@ mod tests {
     use chrono::TimeZone;
 
     fn created_at() -> DateTime<Utc> {
-        Utc.with_ymd_and_hms(2026, 11, 24, 10, 0, 0)
-            .unwrap()
+        Utc.with_ymd_and_hms(2026, 11, 24, 10, 0, 0).unwrap()
     }
 
     fn edited_at() -> DateTime<Utc> {
-        Utc.with_ymd_and_hms(2026, 11, 24, 11, 0, 0)
-            .unwrap()
+        Utc.with_ymd_and_hms(2026, 11, 24, 11, 0, 0).unwrap()
     }
 
     fn create_note() -> Note {
@@ -249,8 +242,7 @@ mod tests {
         note.edit(String::from("Первое изменение"), edited_at())
             .unwrap();
 
-        let second_edit = Utc.with_ymd_and_hms(2026, 11, 24, 12, 0, 0)
-            .unwrap();
+        let second_edit = Utc.with_ymd_and_hms(2026, 11, 24, 12, 0, 0).unwrap();
 
         note.edit(String::from("Второе изменение"), second_edit)
             .unwrap();

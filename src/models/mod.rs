@@ -1,8 +1,8 @@
 pub mod computer;
-pub mod student;
-pub mod user;
 pub mod note;
 pub mod room_layout;
+pub mod student;
+pub mod user;
 
 pub use user::{Role, User, UserId};
 

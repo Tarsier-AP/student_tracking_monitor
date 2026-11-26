@@ -1,4 +1,3 @@
-
 use super::ComputerId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,11 +32,12 @@ impl RoomLayout {
         Self::default()
     }
 
-    pub fn add_position(
-        &mut self,
-        position: ComputerPosition,
-    ) -> Result<(), String> {
-        if self.positions.iter().any(|p| p.computer_id == position.computer_id) {
+    pub fn add_position(&mut self, position: ComputerPosition) -> Result<(), String> {
+        if self
+            .positions
+            .iter()
+            .any(|p| p.computer_id == position.computer_id)
+        {
             return Err(String::from(
                 "Расположение этого компьютера уже существует!",
             ));
@@ -48,7 +48,8 @@ impl RoomLayout {
     }
 
     pub fn remove_position(&mut self, computer_id: ComputerId) -> bool {
-        if let Some(index) = self.positions
+        if let Some(index) = self
+            .positions
             .iter()
             .position(|p| p.computer_id == computer_id)
         {
@@ -59,13 +60,8 @@ impl RoomLayout {
         false
     }
 
-    pub fn get_position(
-        &self,
-        computer_id: ComputerId,
-    ) -> Option<&ComputerPosition> {
-        self.positions
-            .iter()
-            .find(|p| p.computer_id == computer_id)
+    pub fn get_position(&self, computer_id: ComputerId) -> Option<&ComputerPosition> {
+        self.positions.iter().find(|p| p.computer_id == computer_id)
     }
 
     pub fn clear(&mut self) {
@@ -78,7 +74,8 @@ impl RoomLayout {
         grid_x: u64,
         grid_y: u64,
     ) -> Result<(), String> {
-        let position = self.positions
+        let position = self
+            .positions
             .iter_mut()
             .find(|position| position.computer_id == computer_id);
 
@@ -90,7 +87,6 @@ impl RoomLayout {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -118,7 +114,7 @@ mod tests {
         assert_eq!(position.grid_x, 15);
         assert_eq!(position.grid_y, 20);
     }
-    
+
     #[test]
     fn room_layout_new_creates_empty_layout() {
         let layout = RoomLayout::new();
