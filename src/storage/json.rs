@@ -1,16 +1,84 @@
+
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use std::path::Path;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
-pub fn save_json<T: Serialize>(path: &Path, data: &T) -> Result<(), Box<dyn std::error::Error>> {
+static TEMP_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+fn sibling_path(path: &Path, suffix: &str) -> PathBuf {
+    let id = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let file_name = path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy();
+
+    path.with_file_name(format!(
+        ".{file_name}.{}.{}.{suffix}",
+        std::process::id(),
+        id
+    ))
+}
+
+pub fn save_json<T: Serialize>(
+    path: &Path,
+    data: &T,
+) -> Result<(), Box<dyn std::error::Error>> {
     let json = serde_json::to_vec_pretty(data)?;
-    std::fs::write(path, json)?;
+    let temp_path = sibling_path(path, "tmp");
 
+    let result = (|| {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temp_path)?;
+
+        file.write_all(&json)?;
+        file.sync_all()?;
+        drop(file);
+
+        replace_file(&temp_path, path)?;
+
+        Ok::<(), Box<dyn std::error::Error>>(())
+    })();
+
+    if result.is_err() {
+        let _ = fs::remove_file(&temp_path);
+    }
+
+    result
+}
+
+#[cfg(not(windows))]
+fn replace_file(temp: &Path, destination: &Path) -> std::io::Result<()> {
+    fs::rename(temp, destination)
+}
+
+#[cfg(windows)]
+fn replace_file(temp: &Path, destination: &Path) -> std::io::Result<()> {
+    if !destination.exists() {
+        return fs::rename(temp, destination);
+    }
+
+    let backup = sibling_path(destination, "bak");
+
+    fs::rename(destination, &backup)?;
+
+    if let Err(error) = fs::rename(temp, destination) {
+        let _ = fs::rename(&backup, destination);
+        return Err(error);
+    }
+
+    fs::remove_file(backup)?;
     Ok(())
 }
 
-pub fn load_json<T: DeserializeOwned>(path: &Path) -> Result<T, Box<dyn std::error::Error>> {
-    let json = std::fs::read(path)?;
+pub fn load_json<T: DeserializeOwned>(
+    path: &Path,
+) -> Result<T, Box<dyn std::error::Error>> {
+    let json = fs::read(path)?;
     let data = serde_json::from_slice(&json)?;
 
     Ok(data)
@@ -20,12 +88,9 @@ pub fn load_json<T: DeserializeOwned>(path: &Path) -> Result<T, Box<dyn std::err
 mod tests {
     use super::*;
     use serde_json::{Value, json};
-    use std::sync::atomic::{AtomicUsize, Ordering};
 
-    static COUNTER: AtomicUsize = AtomicUsize::new(0);
-
-    fn temp_path(name: &str) -> std::path::PathBuf {
-        let id = COUNTER.fetch_add(1, Ordering::Relaxed);
+    fn temp_path(name: &str) -> PathBuf {
+        let id = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
 
         std::env::temp_dir().join(format!(
             "classroom_manager_{name}_{}_{}.json",
@@ -48,7 +113,7 @@ mod tests {
         let loaded: Value = load_json(&path).unwrap();
 
         assert_eq!(loaded, original);
-        std::fs::remove_file(path).unwrap();
+        fs::remove_file(path).unwrap();
     }
 
     #[test]
@@ -61,7 +126,7 @@ mod tests {
         let loaded: Value = load_json(&path).unwrap();
 
         assert_eq!(loaded, json!({"value": 2}));
-        std::fs::remove_file(path).unwrap();
+        fs::remove_file(path).unwrap();
     }
 
     #[test]
@@ -77,18 +142,17 @@ mod tests {
     fn load_json_fails_on_invalid_json() {
         let path = temp_path("invalid");
 
-        std::fs::write(&path, "{ invalid json").unwrap();
+        fs::write(&path, "{ invalid json").unwrap();
 
         let result: Result<Value, _> = load_json(&path);
 
         assert!(result.is_err());
-        std::fs::remove_file(path).unwrap();
+        fs::remove_file(path).unwrap();
     }
 
     #[test]
     fn save_json_preserves_nested_data() {
         let path = temp_path("nested");
-
         let original = json!({
             "student": {
                 "id": 42,
@@ -104,6 +168,17 @@ mod tests {
         let loaded: Value = load_json(&path).unwrap();
 
         assert_eq!(loaded, original);
-        std::fs::remove_file(path).unwrap();
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn save_json_does_not_create_missing_parent_directory() {
+        let path = temp_path("missing_parent")
+            .join("data.json");
+
+        let result = save_json(&path, &json!({"value": 1}));
+
+        assert!(result.is_err());
     }
 }
+
