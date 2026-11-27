@@ -37,7 +37,6 @@ mod tests {
         StudentId, Task, TaskStatus, UserId,
     };
     use chrono::{NaiveDate, TimeZone, Utc};
-    use eframe::App;
     use url::Url;
 
     #[test]
@@ -102,7 +101,7 @@ mod tests {
         )
         .unwrap();
 
-        student.set_presence_status(PresenceStatus::Waiting);
+        student.set_presence_status(PresenceStatus::AtComputer);
         student.set_task(Task {
             title: "Реализовать авторизацию".into(),
             redmine_url: Some(Url::parse("https://redmine.example.com/issues/123").unwrap()),
