@@ -4,8 +4,7 @@ use url::Url;
 
 use super::UserId;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
-pub struct StudentId(pub u64);
+id_type!(StudentId);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 pub enum PresenceStatus {
@@ -42,16 +41,6 @@ pub struct Student {
     pub is_archived: bool,
 }
 
-impl StudentId {
-    pub fn new(value: u64) -> Self {
-        Self(value)
-    }
-
-    pub fn value(&self) -> u64 {
-        self.0
-    }
-}
-
 impl Student {
     pub fn new(
         id: StudentId,
@@ -61,6 +50,10 @@ impl Student {
     ) -> Result<Self, String> {
         if group.trim().is_empty() {
             return Err(String::from("Группа отсуствует! Попробуйте ещё раз!"));
+        }
+
+        if Self::has_duplicates(&repositories) {
+            return Err(String::from("Список содержит повторяющиеся репозитории!"));
         }
 
         Ok(Self {
@@ -89,8 +82,13 @@ impl Student {
         self.presence_status = presence_status;
     }
 
-    pub fn set_task(&mut self, task: Task) {
+    pub fn set_task(&mut self, task: Task) -> Result<(), String> {
+        if task.title.trim().is_empty() {
+            return Err(String::from("Название задания не может быть пустым!"));
+        }
+
         self.task = Some(task);
+        Ok(())
     }
 
     pub fn clear_task(&mut self) {
@@ -116,14 +114,19 @@ impl Student {
     }
 
     pub fn set_repositories(&mut self, repositories: Vec<Url>) -> Result<(), String> {
-        for (index, repository) in repositories.iter().enumerate() {
-            if repositories[..index].contains(repository) {
-                return Err(String::from("Список содержит повторяющиеся репозитории!"));
-            }
+        if Self::has_duplicates(&repositories) {
+            return Err(String::from("Список содержит повторяющиеся репозитории!"));
         }
 
         self.repositories = repositories;
         Ok(())
+    }
+
+    fn has_duplicates(repositories: &[Url]) -> bool {
+        repositories
+            .iter()
+            .enumerate()
+            .any(|(index, repository)| repositories[..index].contains(repository))
     }
 
     pub fn clear_repositories(&mut self) {
@@ -258,6 +261,34 @@ mod tests {
     }
 
     #[test]
+    fn student_new_rejects_duplicate_repositories() {
+        let repository = github_url();
+
+        let result = Student::new(
+            StudentId::new(1),
+            UserId::new(2),
+            String::from("ИС-21"),
+            vec![repository.clone(), repository],
+        );
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn student_set_task_rejects_empty_title() {
+        let mut student = create_student();
+        let task = Task {
+            title: String::from("   "),
+            redmine_url: None,
+            status: TaskStatus::NotStarted,
+            deadline: None,
+        };
+
+        assert!(student.set_task(task).is_err());
+        assert!(student.task.is_none());
+    }
+
+    #[test]
     fn student_can_change_group() {
         let mut student = create_student();
 
@@ -309,7 +340,7 @@ mod tests {
         let mut student = create_student();
         let task = create_task();
 
-        student.set_task(task.clone());
+        student.set_task(task.clone()).unwrap();
 
         assert!(student.task.is_some());
         assert_eq!(student.task.as_ref().unwrap().title, task.title,);
@@ -319,7 +350,7 @@ mod tests {
     fn student_can_replace_task() {
         let mut student = create_student();
 
-        student.set_task(create_task());
+        student.set_task(create_task()).unwrap();
 
         let new_task = Task {
             title: String::from("Исправить ошибки"),
@@ -328,7 +359,7 @@ mod tests {
             deadline: None,
         };
 
-        student.set_task(new_task.clone());
+        student.set_task(new_task.clone()).unwrap();
 
         let current_task = student.task.as_ref().unwrap();
 
@@ -342,7 +373,7 @@ mod tests {
     fn student_can_clear_task() {
         let mut student = create_student();
 
-        student.set_task(create_task());
+        student.set_task(create_task()).unwrap();
         student.clear_task();
 
         assert!(student.task.is_none());
@@ -476,7 +507,7 @@ mod tests {
             .unwrap();
 
         student.add_repository(repository.clone()).unwrap();
-        student.set_task(create_task());
+        student.set_task(create_task()).unwrap();
         student.set_last_visit(visit);
 
         student.archive();

@@ -3,18 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::UserId;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
-pub struct MessageId(pub u64);
-
-impl MessageId {
-    pub fn new(value: u64) -> Self {
-        Self(value)
-    }
-
-    pub fn value(&self) -> u64 {
-        self.0
-    }
-}
+id_type!(MessageId);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Note {
@@ -87,12 +76,6 @@ mod tests {
     fn message_id_new_stores_value() {
         let id = MessageId::new(42);
         assert_eq!(id.0, 42);
-    }
-
-    #[test]
-    fn message_id_value_returns_value() {
-        let id = MessageId::new(42);
-        assert_eq!(id.value(), 42);
     }
 
     #[test]

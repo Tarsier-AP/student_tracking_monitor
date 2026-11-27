@@ -1,18 +1,7 @@
 use super::StudentId;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
-pub struct ComputerId(pub u64);
-
-impl ComputerId {
-    pub fn new(value: u64) -> Self {
-        Self(value)
-    }
-
-    pub fn value(&self) -> u64 {
-        self.0
-    }
-}
+id_type!(ComputerId);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 pub enum ComputerAvailability {

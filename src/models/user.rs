@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
-pub struct UserId(pub u64);
+id_type!(UserId);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Role {
@@ -19,16 +18,6 @@ pub struct User {
     pub email: Option<String>,
     pub phone: Option<String>,
     pub is_archived: bool,
-}
-
-impl UserId {
-    pub fn new(value: u64) -> Self {
-        Self(value)
-    }
-
-    pub fn value(&self) -> u64 {
-        self.0
-    }
 }
 
 impl User {
@@ -97,12 +86,6 @@ mod tests {
         let id = UserId::new(67);
 
         assert_eq!(id.0, 67);
-    }
-    #[test]
-    fn user_id_value_returns_inner_value() {
-        let id = UserId::new(67);
-
-        assert_eq!(id.value(), 67)
     }
     #[test]
     fn user_new_creates_active_user() {
