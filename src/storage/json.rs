@@ -60,27 +60,23 @@ fn replace_file(temp: &Path, destination: &Path) -> std::io::Result<()> {
     fs::rename(destination, &backup)?;
 
     if let Err(error) = fs::rename(temp, destination) {
-        return match fs::rename(temp, destination) {
-            Ok(()) => Err(error),
-            Err(rollback_error) => Err(std::io::Error::new(
-                error.kind(),
-                format!(
-                    "Не удалось установить новый файл: {error}.\
-                    Не удалось восстановить резервную копию: {rollback_error}"
-                ),
-            )),
-        };
+        fs::rename(&backup, destination)?;
+        return Err(error);
     }
+
     let _ = fs::remove_file(&backup);
 
     Ok(())
 }
 
-pub fn load_json<T: DeserializeOwned>(path: &Path) -> Result<T, Box<dyn std::error::Error>> {
-    let json = fs::read(path)?;
-    let data = serde_json::from_slice(&json)?;
-
-    Ok(data)
+pub fn load_json_or_default<T: DeserializeOwned + Default>(
+    path: &Path,
+) -> Result<T, Box<dyn std::error::Error>> {
+    match fs::read(path) {
+        Ok(json) => Ok(serde_json::from_slice(&json)?),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(T::default()),
+        Err(error) => Err(error.into()),
+    }
 }
 
 #[cfg(test)]
@@ -109,7 +105,7 @@ mod tests {
 
         save_json(&path, &original).unwrap();
 
-        let loaded: Value = load_json(&path).unwrap();
+        let loaded: Value = load_json_or_default(&path).unwrap();
 
         assert_eq!(loaded, original);
         fs::remove_file(path).unwrap();
@@ -122,19 +118,19 @@ mod tests {
         save_json(&path, &json!({"value": 1})).unwrap();
         save_json(&path, &json!({"value": 2})).unwrap();
 
-        let loaded: Value = load_json(&path).unwrap();
+        let loaded: Value = load_json_or_default(&path).unwrap();
 
         assert_eq!(loaded, json!({"value": 2}));
         fs::remove_file(path).unwrap();
     }
 
     #[test]
-    fn load_json_fails_if_file_does_not_exist() {
+    fn load_json_returns_default_if_file_does_not_exist() {
         let path = temp_path("missing");
 
-        let result: Result<Value, _> = load_json(&path);
+        let result: Value = load_json_or_default(&path).unwrap();
 
-        assert!(result.is_err());
+        assert_eq!(result, Value::Null);
     }
 
     #[test]
@@ -143,7 +139,7 @@ mod tests {
 
         fs::write(&path, "{ invalid json").unwrap();
 
-        let result: Result<Value, _> = load_json(&path);
+        let result: Result<Value, _> = load_json_or_default(&path);
 
         assert!(result.is_err());
         fs::remove_file(path).unwrap();
@@ -164,7 +160,7 @@ mod tests {
 
         save_json(&path, &original).unwrap();
 
-        let loaded: Value = load_json(&path).unwrap();
+        let loaded: Value = load_json_or_default(&path).unwrap();
 
         assert_eq!(loaded, original);
         fs::remove_file(path).unwrap();
