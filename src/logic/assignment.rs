@@ -369,8 +369,8 @@ mod tests {
 
         assert!(move_student(&student, &mut from, &mut to).is_err());
 
-        // Neither computer should be modified.
         assert_eq!(from.current_students, vec![student.id]);
         assert!(to.current_students.is_empty());
     }
 }
+
