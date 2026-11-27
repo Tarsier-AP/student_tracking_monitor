@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::models::{StudentId, student};
+use crate::models::StudentId;
 
 pub fn enqueue(queue: &mut VecDeque<StudentId>, student_id: StudentId) -> Result<(), String> {
     if queue.contains(&student_id) {
@@ -19,16 +19,14 @@ pub fn pop_next(queue: &mut VecDeque<StudentId>) -> Option<StudentId> {
 pub fn remove(queue: &mut VecDeque<StudentId>, student_id: StudentId) -> bool {
     if let Some(index) = queue.iter().position(|id| *id == student_id) {
         queue.remove(index);
-        return true;
+        true
+    } else {
+        false
     }
-
-    false
 }
 
 pub fn move_to_back(queue: &mut VecDeque<StudentId>, student_id: StudentId) -> bool {
-    let index = queue.iter().position(|id| *id == student_id);
-
-    if let Some(index) = index {
+    if let Some(index) = queue.iter().position(|id| *id == student_id) {
         if let Some(student) = queue.remove(index) {
             queue.push_back(student);
             return true;
@@ -89,12 +87,8 @@ mod tests {
     fn remove_returns_false_for_missing_student() {
         let mut queue = make_queue();
 
-        assert!(move_to_back(&mut queue, StudentId(1)));
-
-        assert_eq!(
-            queue,
-            VecDeque::from([StudentId(2), StudentId(3), StudentId(1),])
-        );
+        assert!(!remove(&mut queue, StudentId(99)));
+        assert_eq!(queue, make_queue());
     }
 
     #[test]
@@ -103,5 +97,16 @@ mod tests {
 
         assert!(!move_to_back(&mut queue, StudentId(99)));
         assert_eq!(queue, make_queue());
+    }
+
+    #[test]
+    fn move_to_back_moves_student() {
+        let mut queue = make_queue();
+
+        assert!(move_to_back(&mut queue, StudentId(1)));
+        assert_eq!(
+            queue,
+            VecDeque::from([StudentId(2), StudentId(3), StudentId(1)])
+        );
     }
 }
