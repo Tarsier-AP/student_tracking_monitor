@@ -373,4 +373,3 @@ mod tests {
         assert!(to.current_students.is_empty());
     }
 }
-

@@ -117,7 +117,6 @@ mod tests {
         )
         .unwrap();
 
-        computer.set_availability(ComputerAvailability::Maintenance);
         computer.current_students.push(StudentId::new(10));
 
         let timestamp = Utc.with_ymd_and_hms(2026, 11, 24, 10, 0, 0).unwrap();
@@ -135,7 +134,6 @@ mod tests {
         data.students.push(student);
         data.computers.push(computer);
         data.notes.push(note);
-        data.queue.push_back(StudentId::new(10));
 
         data.room_layout
             .add_position(ComputerPosition::new(ComputerId::new(5), 3, 4))
