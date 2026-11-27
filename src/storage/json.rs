@@ -51,7 +51,7 @@ fn replace_file(temp: &Path, destination: &Path) -> std::io::Result<()> {
 
 #[cfg(windows)]
 fn replace_file(temp: &Path, destination: &Path) -> std::io::Result<()> {
-    if !destination.exists() {
+    if !destination.try_exists()? {
         return fs::rename(temp, destination);
     }
 
@@ -65,13 +65,13 @@ fn replace_file(temp: &Path, destination: &Path) -> std::io::Result<()> {
             Err(rollback_error) => Err(std::io::Error::new(
                 error.kind(),
                 format!(
-                    "Не удалось установить новый файл: {error} .\
+                    "Не удалось установить новый файл: {error}.\
                     Не удалось восстановить резервную копию: {rollback_error}"
                 ),
             )),
         };
     }
-    let _ = fs::rename(&backup, destination);
+    let _ = fs::remove_file(&backup);
 
     Ok(())
 }
