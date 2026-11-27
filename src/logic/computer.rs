@@ -8,10 +8,6 @@ pub fn set_computer_availability(
     students: &mut [Student],
     queue: &mut VecDeque<StudentId>,
 ) -> Result<(), String> {
-    if computer.availability == availability {
-        return Ok(());
-    }
-
     if availability == ComputerAvailability::Online {
         computer.availability = availability;
         return Ok(());
@@ -252,5 +248,32 @@ mod tests {
         assert_eq!(computer.availability, ComputerAvailability::Online);
         assert_eq!(computer.current_students, vec![StudentId(1)]);
         assert!(queue.is_empty());
+    }
+
+    #[test]
+    fn taking_already_offline_computer_offline_returns_students_to_queue() {
+        let mut computer = make_computer();
+        computer.availability = ComputerAvailability::Offline;
+
+        let mut student = make_student(1);
+        student.presence_status = PresenceStatus::AtComputer;
+        computer.current_students.push(student.id);
+
+        let mut students = [student];
+        let mut queue = VecDeque::new();
+
+        assert!(
+            set_computer_availability(
+                &mut computer,
+                ComputerAvailability::Offline,
+                &mut students,
+                &mut queue,
+            )
+            .is_ok()
+        );
+
+        assert!(computer.current_students.is_empty());
+        assert_eq!(students[0].presence_status, PresenceStatus::Waiting);
+        assert_eq!(queue, VecDeque::from([StudentId(1)]));
     }
 }
