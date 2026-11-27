@@ -44,6 +44,10 @@ impl RoomLayout {
             ));
         }
 
+        if self.cell_taken(position.computer_id, position.grid_x, position.grid_y) {
+            return Err(String::from("Эта клетка уже занята другим компьютером!"));
+        }
+
         self.positions.push(position);
         Ok(())
     }
@@ -75,17 +79,28 @@ impl RoomLayout {
         grid_x: u64,
         grid_y: u64,
     ) -> Result<(), String> {
-        let position = self
+        if self.cell_taken(computer_id, grid_x, grid_y) {
+            return Err(String::from("Эта клетка уже занята другим компьютером!"));
+        }
+
+        let Some(position) = self
             .positions
             .iter_mut()
-            .find(|position| position.computer_id == computer_id);
+            .find(|position| position.computer_id == computer_id)
+        else {
+            return Err(String::from("Компьютер не найден!"));
+        };
 
-        if let Some(position) = position {
-            position.set_position(grid_x, grid_y);
-            Ok(())
-        } else {
-            Err(String::from("Компьютер не найден!"))
-        }
+        position.set_position(grid_x, grid_y);
+        Ok(())
+    }
+
+    fn cell_taken(&self, computer_id: ComputerId, grid_x: u64, grid_y: u64) -> bool {
+        self.positions.iter().any(|position| {
+            position.computer_id != computer_id
+                && position.grid_x == grid_x
+                && position.grid_y == grid_y
+        })
     }
 }
 
@@ -229,6 +244,35 @@ mod tests {
         assert!(result.is_ok());
 
         let position = layout.get_position(ComputerId(1)).unwrap();
+
+        assert_eq!(position.grid_x, 15);
+        assert_eq!(position.grid_y, 20);
+    }
+
+    #[test]
+    fn room_layout_add_position_rejects_occupied_cell() {
+        let mut layout = RoomLayout::new();
+
+        layout.add_position(create_position(1, 5, 10)).unwrap();
+
+        let result = layout.add_position(create_position(2, 5, 10));
+
+        assert!(result.is_err());
+        assert_eq!(layout.positions.len(), 1);
+    }
+
+    #[test]
+    fn room_layout_move_computer_rejects_occupied_cell() {
+        let mut layout = RoomLayout::new();
+
+        layout.add_position(create_position(1, 5, 10)).unwrap();
+        layout.add_position(create_position(2, 15, 20)).unwrap();
+
+        let result = layout.move_computer(ComputerId(2), 5, 10);
+
+        assert!(result.is_err());
+
+        let position = layout.get_position(ComputerId(2)).unwrap();
 
         assert_eq!(position.grid_x, 15);
         assert_eq!(position.grid_y, 20);
