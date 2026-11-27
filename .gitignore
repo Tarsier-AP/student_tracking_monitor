@@ -1,2 +1,4 @@
 /target
 /vendor
+.agents
+skills-lock.json
